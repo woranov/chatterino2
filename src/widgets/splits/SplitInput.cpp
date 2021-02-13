@@ -334,14 +334,46 @@ void SplitInput::installKeyPressedEvent()
                     {
                         this->currMsg_ = ui_.textEdit->toPlainText();
                     }
+                    if (event->modifiers() == Qt::ControlModifier)
+                    {
+                        if (!this->currMsg_.isEmpty() && this->prevMsg_.size())
+                        {
+                            int currentPrevIndex = prevIndex_;
+                            bool matchFound = false;
+                            while (!matchFound && this->prevIndex_ > 0)
+                            {
+                                this->prevIndex_--;
+                                matchFound =
+                                    this->prevMsg_.at(this->prevIndex_)
+                                        .startsWith(this->currMsg_,
+                                                    Qt::CaseInsensitive);
+                            }
+                            if (matchFound)
+                            {
+                                this->ui_.textEdit->setPlainText(
+                                    this->prevMsg_.at(this->prevIndex_));
 
-                    this->prevIndex_--;
-                    this->ui_.textEdit->setPlainText(
-                        this->prevMsg_.at(this->prevIndex_));
+                                QTextCursor cursor =
+                                    this->ui_.textEdit->textCursor();
+                                cursor.movePosition(QTextCursor::End);
+                                this->ui_.textEdit->setTextCursor(cursor);
+                            }
+                            else
+                            {
+                                this->prevIndex_ = currentPrevIndex;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        this->prevIndex_--;
+                        this->ui_.textEdit->setPlainText(
+                            this->prevMsg_.at(this->prevIndex_));
 
-                    QTextCursor cursor = this->ui_.textEdit->textCursor();
-                    cursor.movePosition(QTextCursor::End);
-                    this->ui_.textEdit->setTextCursor(cursor);
+                        QTextCursor cursor = this->ui_.textEdit->textCursor();
+                        cursor.movePosition(QTextCursor::End);
+                        this->ui_.textEdit->setTextCursor(cursor);
+                    }
 
                     // Don't let the keyboard event propagate further, we've
                     // handled it
