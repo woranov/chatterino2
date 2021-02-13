@@ -241,6 +241,9 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
     createWindowShortcut(this, "Return", [=] {
         this->ok();
     });
+    createWindowShortcut(this, "Enter", [=] {
+        this->ok();
+    });
     createWindowShortcut(this, "Esc", [=] {
         this->close();
     });
