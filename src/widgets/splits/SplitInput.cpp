@@ -220,6 +220,42 @@ void SplitInput::installKeyPressedEvent()
             QString message = ui_.textEdit->toPlainText();
 
             message = message.replace('\n', ' ');
+
+            if (event->modifiers() & Qt::AltModifier)
+            {
+                auto cursor = this->ui_.textEdit->textCursor();
+
+                int originalPos = cursor.position();
+                int startPos = cursor.position();
+
+                for (; startPos > 0; --startPos)
+                {
+                    if (message[startPos] == '/')
+                        break;
+                }
+
+                QString commandText = message.mid(startPos, originalPos);
+                QString commandResult =
+                    app->commands->execCommand(commandText, c, true);
+
+                if (commandText.trimmed() != commandResult.trimmed())
+                {
+                    if (!commandResult.endsWith(' '))
+                    {
+                        commandResult += " ";
+                    }
+
+                    cursor.setPosition(startPos);
+                    cursor.setPosition(originalPos, QTextCursor::KeepAnchor);
+                    cursor.insertText(commandResult);
+
+                    this->ui_.textEdit->setTextCursor(cursor);
+                }
+
+                event->accept();
+                return;
+            }
+
             QString sendMessage = app->commands->execCommand(message, c, false);
 
             c->sendMessage(sendMessage);
