@@ -21,22 +21,29 @@ namespace {
         QString providerName;
     };
 
-    void addEmotes(std::vector<_Emote> &out, const EmoteMap &map,
-                   const QString &text, const QString &providerName)
+    void addEmotes(std::vector<_Emote> &prefixMatchOut, std::vector<_Emote> &regularMatchOut,
+                   const EmoteMap &map, const QString &text, const QString &providerName)
     {
         for (auto &&emote : map)
-            if (emote.first.string.contains(text, Qt::CaseInsensitive))
-                out.push_back(
-                    {emote.second, emote.second->name.string, providerName});
+            if (emote.first.string.startsWith(text, Qt::CaseInsensitive)) {
+                prefixMatchOut.push_back(
+                        {emote.second, emote.second->name.string, providerName});
+            } else if (emote.first.string.contains(text, Qt::CaseInsensitive)) {
+                regularMatchOut.push_back(
+                        {emote.second, emote.second->name.string, providerName});
+            }
     }
 
-    void addEmojis(std::vector<_Emote> &out, const EmojiMap &map,
-                   const QString &text)
+    void addEmojis(std::vector<_Emote> &prefixMatchOut, std::vector<_Emote> &regularMatchOut,
+                   const EmojiMap &map, const QString &text)
     {
         map.each([&](const QString &, const std::shared_ptr<EmojiData> &emoji) {
             for (auto &&shortCode : emoji->shortCodes)
-                if (shortCode.contains(text, Qt::CaseInsensitive))
-                    out.push_back({emoji->emote, shortCode, "Emoji"});
+                if (shortCode.contains(text, Qt::CaseInsensitive)) {
+                    prefixMatchOut.push_back({emoji->emote, shortCode, "Emoji"});
+                } else if (shortCode.contains(text, Qt::CaseInsensitive)) {
+                    regularMatchOut.push_back({emoji->emote, shortCode, "Emoji"});
+                }
         });
     }
 }  // namespace
@@ -73,7 +80,9 @@ void EmoteInputPopup::initLayout()
 
 void EmoteInputPopup::updateEmotes(const QString &text, ChannelPtr channel)
 {
-    std::vector<_Emote> emotes;
+    std::vector<_Emote> prefixMatchEmotes;
+    std::vector<_Emote> regularMatchEmotes;
+
     auto tc = dynamic_cast<TwitchChannel *>(channel.get());
     auto wc = channel.get()->getType() == Channel::Type::TwitchWhispers;
     if (tc || wc)
@@ -81,25 +90,28 @@ void EmoteInputPopup::updateEmotes(const QString &text, ChannelPtr channel)
         if (auto user = getApp()->accounts->twitch.getCurrent())
         {
             auto twitch = user->accessEmotes();
-            addEmotes(emotes, twitch->emotes, text, "Twitch Emote");
+            addEmotes(prefixMatchEmotes, regularMatchEmotes, twitch->emotes, text, "Twitch Emote");
         }
 
         if (tc)
         {
             // TODO extract "Channel BetterTTV" text into a #define.
             if (auto bttv = tc->bttvEmotes())
-                addEmotes(emotes, *bttv, text, "Channel BetterTTV");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttv, text, "Channel BetterTTV");
             if (auto ffz = tc->ffzEmotes())
-                addEmotes(emotes, *ffz, text, "Channel FrankerFaceZ");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffz, text, "Channel FrankerFaceZ");
 
             if (auto bttvG = tc->globalBttv().emotes())
-                addEmotes(emotes, *bttvG, text, "Global BetterTTV");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttvG, text, "Global BetterTTV");
             if (auto ffzG = tc->globalFfz().emotes())
-                addEmotes(emotes, *ffzG, text, "Global FrankerFaceZ");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffzG, text, "Global FrankerFaceZ");
         }
 
-        addEmojis(emotes, getApp()->emotes->emojis.emojis, text);
+        addEmojis(prefixMatchEmotes, regularMatchEmotes, getApp()->emotes->emojis.emojis, text);
     }
+
+    prefixMatchEmotes.insert( prefixMatchEmotes.end(), regularMatchEmotes.begin(), regularMatchEmotes.end() );
+    auto emotes = prefixMatchEmotes;
 
     // if there is an exact match, put that emote first
     for (size_t i = 1; i < emotes.size(); i++)
