@@ -417,8 +417,33 @@ void SplitInput::installKeyPressedEvent()
                 bool cursorToEnd = true;
                 QString message = ui_.textEdit->toPlainText();
 
-                if (this->prevIndex_ != (this->prevMsg_.size() - 1) &&
-                    this->prevIndex_ != this->prevMsg_.size())
+                if (event->modifiers() == Qt::ControlModifier)
+                {
+                    if (!this->currMsg_.isEmpty() && this->prevMsg_.size())
+                    {
+                        bool matchFound = false;
+                        while (!matchFound &&
+                               this->prevIndex_ < this->prevMsg_.size() - 1)
+                        {
+                            this->prevIndex_++;
+                            matchFound = this->prevMsg_.at(this->prevIndex_)
+                                             .startsWith(this->currMsg_,
+                                                         Qt::CaseInsensitive);
+                        }
+                        if (matchFound)
+                        {
+                            this->ui_.textEdit->setPlainText(
+                                this->prevMsg_.at(this->prevIndex_));
+                        }
+                        else
+                        {
+                            this->prevIndex_ = this->prevMsg_.size();
+                            this->ui_.textEdit->setPlainText(this->currMsg_);
+                        }
+                    }
+                }
+                else if (this->prevIndex_ != (this->prevMsg_.size() - 1) &&
+                         this->prevIndex_ != this->prevMsg_.size())
                 {
                     this->prevIndex_++;
                     this->ui_.textEdit->setPlainText(
