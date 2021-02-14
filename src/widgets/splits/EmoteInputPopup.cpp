@@ -21,28 +21,38 @@ namespace {
         QString providerName;
     };
 
-    void addEmotes(std::vector<_Emote> &prefixMatchOut, std::vector<_Emote> &regularMatchOut,
-                   const EmoteMap &map, const QString &text, const QString &providerName)
+    void addEmotes(std::vector<_Emote> &prefixMatchOut,
+                   std::vector<_Emote> &regularMatchOut, const EmoteMap &map,
+                   const QString &text, const QString &providerName)
     {
         for (auto &&emote : map)
-            if (emote.first.string.startsWith(text, Qt::CaseInsensitive)) {
+            if (emote.first.string.startsWith(text, Qt::CaseInsensitive))
+            {
                 prefixMatchOut.push_back(
-                        {emote.second, emote.second->name.string, providerName});
-            } else if (emote.first.string.contains(text, Qt::CaseInsensitive)) {
+                    {emote.second, emote.second->name.string, providerName});
+            }
+            else if (emote.first.string.contains(text, Qt::CaseInsensitive))
+            {
                 regularMatchOut.push_back(
-                        {emote.second, emote.second->name.string, providerName});
+                    {emote.second, emote.second->name.string, providerName});
             }
     }
 
-    void addEmojis(std::vector<_Emote> &prefixMatchOut, std::vector<_Emote> &regularMatchOut,
-                   const EmojiMap &map, const QString &text)
+    void addEmojis(std::vector<_Emote> &prefixMatchOut,
+                   std::vector<_Emote> &regularMatchOut, const EmojiMap &map,
+                   const QString &text)
     {
         map.each([&](const QString &, const std::shared_ptr<EmojiData> &emoji) {
             for (auto &&shortCode : emoji->shortCodes)
-                if (shortCode.contains(text, Qt::CaseInsensitive)) {
-                    prefixMatchOut.push_back({emoji->emote, shortCode, "Emoji"});
-                } else if (shortCode.contains(text, Qt::CaseInsensitive)) {
-                    regularMatchOut.push_back({emoji->emote, shortCode, "Emoji"});
+                if (shortCode.contains(text, Qt::CaseInsensitive))
+                {
+                    prefixMatchOut.push_back(
+                        {emoji->emote, shortCode, "Emoji"});
+                }
+                else if (shortCode.contains(text, Qt::CaseInsensitive))
+                {
+                    regularMatchOut.push_back(
+                        {emoji->emote, shortCode, "Emoji"});
                 }
         });
     }
@@ -90,27 +100,35 @@ void EmoteInputPopup::updateEmotes(const QString &text, ChannelPtr channel)
         if (auto user = getApp()->accounts->twitch.getCurrent())
         {
             auto twitch = user->accessEmotes();
-            addEmotes(prefixMatchEmotes, regularMatchEmotes, twitch->emotes, text, "Twitch Emote");
+            addEmotes(prefixMatchEmotes, regularMatchEmotes, twitch->emotes,
+                      text, "Twitch Emote");
         }
 
         if (tc)
         {
             // TODO extract "Channel BetterTTV" text into a #define.
             if (auto bttv = tc->bttvEmotes())
-                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttv, text, "Channel BetterTTV");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttv, text,
+                          "Channel BetterTTV");
             if (auto ffz = tc->ffzEmotes())
-                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffz, text, "Channel FrankerFaceZ");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffz, text,
+                          "Channel FrankerFaceZ");
 
             if (auto bttvG = tc->globalBttv().emotes())
-                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttvG, text, "Global BetterTTV");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *bttvG, text,
+                          "Global BetterTTV");
             if (auto ffzG = tc->globalFfz().emotes())
-                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffzG, text, "Global FrankerFaceZ");
+                addEmotes(prefixMatchEmotes, regularMatchEmotes, *ffzG, text,
+                          "Global FrankerFaceZ");
         }
 
-        addEmojis(prefixMatchEmotes, regularMatchEmotes, getApp()->emotes->emojis.emojis, text);
+        addEmojis(prefixMatchEmotes, regularMatchEmotes,
+                  getApp()->emotes->emojis.emojis, text);
     }
 
-    prefixMatchEmotes.insert( prefixMatchEmotes.end(), regularMatchEmotes.begin(), regularMatchEmotes.end() );
+    prefixMatchEmotes.insert(prefixMatchEmotes.end(),
+                             regularMatchEmotes.begin(),
+                             regularMatchEmotes.end());
     auto emotes = prefixMatchEmotes;
 
     // if there is an exact match, put that emote first
