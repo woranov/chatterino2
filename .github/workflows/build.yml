@@ -4,7 +4,7 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - chatterinov
     paths-ignore:
       - 'docs/**'
       - '*.md'
@@ -182,17 +182,22 @@ jobs:
   create-release:
     needs: build
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/chatterinov')
 
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
       - name: Create release
         id: create_release
         uses: pajlada/create-release@v2.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: nightly-build
-          backup_tag_name: backup-nightly-build
+          tag_name: nightly-build-${{ steps.extract_branch.outputs.branch }}
+          backup_tag_name: backup-nightly-build-${{ steps.extract_branch.outputs.branch }}
           release_name: Nightly Release
           body: |
               Nightly Build
