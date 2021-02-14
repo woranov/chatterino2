@@ -417,7 +417,6 @@ void SplitInput::installKeyPressedEvent()
                 {
                     if (!this->currMsg_.isEmpty() && this->prevMsg_.size())
                     {
-                        auto currentPrevIndex = prevIndex_;
                         bool matchFound = false;
                         while (!matchFound &&
                                this->prevIndex_ < this->prevMsg_.size() - 1)
