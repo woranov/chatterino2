@@ -25,7 +25,7 @@ Version::Version()
 #endif
 
     // "Full" version string, as displayed in window title
-    this->fullVersion_ = "Chatterino(v) ";
+    this->fullVersion_ = "Chatterinov ";
     if (Modes::instance().isNightly)
     {
         this->fullVersion_ += "Nightly ";
