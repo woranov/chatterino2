@@ -198,7 +198,7 @@ jobs:
         with:
           tag_name: nightly-build-${{ steps.extract_branch.outputs.branch }}
           backup_tag_name: backup-nightly-build-${{ steps.extract_branch.outputs.branch }}
-          release_name: Nightly Release ${{ steps.extract_branch.outputs.branch }}
+          release_name: Nightly Release (${{ steps.extract_branch.outputs.branch }})
           body: |
               Nightly Build
           prerelease: true
