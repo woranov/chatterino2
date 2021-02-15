@@ -235,6 +235,44 @@ void SplitInput::installKeyPressedEvent()
             QString message = ui_.textEdit->toPlainText();
 
             message = message.replace('\n', ' ');
+
+            if (event->modifiers() & Qt::AltModifier)
+            {
+                auto cursor = this->ui_.textEdit->textCursor();
+
+                int originalPos = cursor.position();
+
+                QString commandText;
+                QString commandResult;
+
+                for (int startPos = cursor.position(); startPos >= 0;
+                     --startPos)
+                {
+                    commandText = message.mid(startPos, originalPos);
+                    commandResult =
+                        app->commands->execCommand(commandText, c, true);
+
+                    if (commandText.trimmed() != commandResult.trimmed())
+                    {
+                        if (!commandResult.endsWith(' '))
+                        {
+                            commandResult += " ";
+                        }
+
+                        cursor.setPosition(startPos);
+                        cursor.setPosition(originalPos,
+                                           QTextCursor::KeepAnchor);
+                        cursor.insertText(commandResult);
+
+                        this->ui_.textEdit->setTextCursor(cursor);
+
+                        break;
+                    }
+                }
+                event->accept();
+                return;
+            }
+
             QString sendMessage = app->commands->execCommand(message, c, false);
 
             c->sendMessage(sendMessage);
@@ -365,6 +403,11 @@ void SplitInput::installKeyPressedEvent()
                 Split::Action::SelectSplitAbove);
 
             event->accept();
+
+            if (page != nullptr)
+            {
+                page->selectNextSplit(SplitContainer::Above);
+            }
         }
         else if (event->key() == Qt::Key_L &&
                  event->modifiers() == Qt::AltModifier)
