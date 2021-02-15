@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/Common.hpp"
+#include "messages/LimitedQueueSnapshot.hpp"
 #include "util/QObjectRef.hpp"
 #include "widgets/BaseWidget.hpp"
 #include "widgets/dialogs/EmotePopup.hpp"
@@ -52,6 +54,7 @@ private:
     void hideColonMenu();
     void insertColonText(const QString &text);
     void openEmotePopup();
+    bool shouldSkipSnapshotMessage();
 
     Split *const split_;
     QObjectRef<EmotePopup> emotePopup_;
@@ -69,6 +72,10 @@ private:
     QStringList prevMsg_;
     QString currMsg_;
     int prevIndex_ = 0;
+
+    LimitedQueueSnapshot<MessagePtr> snapshot_;
+    bool scrollingSnapshot_ = false;
+    int snapshotIndex_ = 0;
 
 private slots:
     void editTextChanged();
