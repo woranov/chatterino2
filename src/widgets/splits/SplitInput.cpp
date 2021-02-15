@@ -197,6 +197,16 @@ void SplitInput::openEmotePopup()
     this->emotePopup_->activateWindow();
 }
 
+bool SplitInput::shouldSkipSnapshotMessage()
+{
+    return this->snapshotIndex_ >= 0 &&
+           this->snapshotIndex_ < this->snapshot_.size() &&
+           (this->snapshot_[this->snapshotIndex_]->flags.has(
+                MessageFlag::System) ||
+            this->snapshot_[this->snapshotIndex_]->flags.has(
+                MessageFlag::Whisper));
+}
+
 void SplitInput::installKeyPressedEvent()
 {
     auto app = getApp();
@@ -216,6 +226,8 @@ void SplitInput::installKeyPressedEvent()
 
         if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return)
         {
+            this->scrollingSnapshot_ = false;
+
             auto c = this->split_->getChannel();
             if (c == nullptr)
                 return;
@@ -252,6 +264,26 @@ void SplitInput::installKeyPressedEvent()
             {
                 this->split_->actionRequested.invoke(
                     Split::Action::SelectSplitAbove);
+            }
+            else if (this->scrollingSnapshot_)
+            {
+                auto currentSnapshotIndex = this->snapshotIndex_;
+
+                do
+                {
+                    this->snapshotIndex_--;
+                } while (this->shouldSkipSnapshotMessage());
+
+                if (this->snapshotIndex_ == -1)
+                {
+                    this->snapshotIndex_ = currentSnapshotIndex;
+                }
+
+                this->ui_.textEdit->setPlainText(
+                    this->snapshot_[this->snapshotIndex_]->messageText);
+                this->ui_.textEdit->moveCursor(QTextCursor::End);
+
+                event->accept();
             }
             else
             {
@@ -354,6 +386,27 @@ void SplitInput::installKeyPressedEvent()
                 this->split_->actionRequested.invoke(
                     Split::Action::SelectSplitBelow);
             }
+            else if (this->scrollingSnapshot_)
+            {
+                auto currentSnapshotIndex = this->snapshotIndex_;
+
+                do
+                {
+                    this->snapshotIndex_++;
+                } while (this->shouldSkipSnapshotMessage());
+
+                if (this->snapshotIndex_ == this->snapshot_.size())
+                {
+                    this->snapshotIndex_ = currentSnapshotIndex;
+                    return;
+                }
+
+                this->ui_.textEdit->setPlainText(
+                    this->snapshot_[this->snapshotIndex_]->messageText);
+                this->ui_.textEdit->moveCursor(QTextCursor::End);
+
+                event->accept();
+            }
             else
             {
                 // If user did not write anything before then just do nothing.
@@ -444,6 +497,45 @@ void SplitInput::installKeyPressedEvent()
             auto &scrollbar = this->split_->getChannelView().getScrollBar();
             scrollbar.offset(scrollbar.getLargeChange());
 
+            event->accept();
+        }
+        else if ((event->key() == Qt::Key_Escape ||
+                  event->key() == Qt::Key_F12) &&
+                 this->scrollingSnapshot_)
+        {
+            this->scrollingSnapshot_ = false;
+            this->ui_.textEdit->setPlainText(this->currMsg_);
+            this->ui_.textEdit->moveCursor(QTextCursor::End);
+            event->accept();
+        }
+        else if (event->key() == Qt::Key_F12)
+        {
+            this->scrollingSnapshot_ = true;
+            this->snapshot_ = this->split_->getChannel()->getMessageSnapshot();
+            this->currMsg_ = ui_.textEdit->toPlainText();
+
+            if (this->snapshot_.size() == 0)
+            {
+                this->scrollingSnapshot_ = false;
+            }
+            else
+            {
+                this->snapshotIndex_ = this->snapshot_.size() - 1;
+
+                while (this->shouldSkipSnapshotMessage())
+                    this->snapshotIndex_--;
+
+                if (this->snapshotIndex_ == -1)
+                {
+                    this->scrollingSnapshot_ = false;
+                }
+                else
+                {
+                    this->ui_.textEdit->setPlainText(
+                        this->snapshot_[this->snapshotIndex_]->messageText);
+                    this->ui_.textEdit->moveCursor(QTextCursor::End);
+                }
+            }
             event->accept();
         }
     });
@@ -584,6 +676,12 @@ void SplitInput::editTextChanged()
 
     // set textLengthLabel value
     QString text = this->ui_.textEdit->toPlainText();
+
+    if (this->scrollingSnapshot_ &&
+        text != this->snapshot_[this->snapshotIndex_]->messageText)
+    {
+        this->scrollingSnapshot_ = false;
+    }
 
     if (text.startsWith("/r ", Qt::CaseInsensitive) &&
         this->split_->getChannel()->isTwitchChannel())
