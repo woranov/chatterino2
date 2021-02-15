@@ -226,32 +226,34 @@ void SplitInput::installKeyPressedEvent()
                 auto cursor = this->ui_.textEdit->textCursor();
 
                 int originalPos = cursor.position();
-                int startPos = cursor.position();
 
-                for (; startPos > 0; --startPos)
+                QString commandText;
+                QString commandResult;
+
+                for (int startPos = cursor.position(); startPos >= 0;
+                     --startPos)
                 {
-                    if (message[startPos] == '/')
-                        break;
-                }
+                    commandText = message.mid(startPos, originalPos);
+                    commandResult =
+                        app->commands->execCommand(commandText, c, true);
 
-                QString commandText = message.mid(startPos, originalPos);
-                QString commandResult =
-                    app->commands->execCommand(commandText, c, true);
-
-                if (commandText.trimmed() != commandResult.trimmed())
-                {
-                    if (!commandResult.endsWith(' '))
+                    if (commandText.trimmed() != commandResult.trimmed())
                     {
-                        commandResult += " ";
+                        if (!commandResult.endsWith(' '))
+                        {
+                            commandResult += " ";
+                        }
+
+                        cursor.setPosition(startPos);
+                        cursor.setPosition(originalPos,
+                                           QTextCursor::KeepAnchor);
+                        cursor.insertText(commandResult);
+
+                        this->ui_.textEdit->setTextCursor(cursor);
+
+                        break;
                     }
-
-                    cursor.setPosition(startPos);
-                    cursor.setPosition(originalPos, QTextCursor::KeepAnchor);
-                    cursor.insertText(commandResult);
-
-                    this->ui_.textEdit->setTextCursor(cursor);
                 }
-
                 event->accept();
                 return;
             }
