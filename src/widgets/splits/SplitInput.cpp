@@ -227,29 +227,29 @@ void SplitInput::installKeyPressedEvent()
 
                 int originalPos = cursor.position();
 
-                QString commandText;
-                QString commandResult;
+                QString commandInput;
+                QString commandOutput;
 
                 for (int startPos = cursor.position(); startPos >= -1;
                      --startPos)
                 {
                     if (startPos == -1 || message[startPos] == ' ')
                     {
-                        commandText = message.mid(startPos + 1, originalPos);
-                        commandResult =
-                            app->commands->execCommand(commandText, c, true);
+                        commandInput = message.mid(startPos + 1, originalPos);
+                        commandOutput =
+                            app->commands->execCommand(commandInput, c, true);
 
-                        if (commandText.trimmed() != commandResult.trimmed())
+                        if (commandInput.trimmed() != commandOutput.trimmed())
                         {
-                            if (!commandResult.endsWith(' '))
+                            if (!commandOutput.endsWith(' '))
                             {
-                                commandResult += " ";
+                                commandOutput += " ";
                             }
 
                             cursor.setPosition(startPos + 1);
                             cursor.setPosition(originalPos,
                                                QTextCursor::KeepAnchor);
-                            cursor.insertText(commandResult);
+                            cursor.insertText(commandOutput);
 
                             this->ui_.textEdit->setTextCursor(cursor);
 
