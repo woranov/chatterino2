@@ -17,10 +17,12 @@
 #include "singletons/WindowManager.hpp"
 #include "util/CombinePath.hpp"
 #include "util/FormatTime.hpp"
+#include "util/Helpers.hpp"
 #include "util/StreamLink.hpp"
 #include "util/Twitch.hpp"
 #include "widgets/Window.hpp"
 #include "widgets/dialogs/UserInfoPopup.hpp"
+#include "widgets/splits/Split.hpp"
 
 #include <QApplication>
 #include <QFile>
@@ -515,13 +517,15 @@ void CommandController::initialize(Settings &, Paths &paths)
 
             channel->addMessage(makeSystemMessage(
                 QString("Chatter count: %1")
-                    .arg(QString::number(twitchChannel->chatterCount()))));
+                    .arg(localizeNumbers(twitchChannel->chatterCount()))));
 
             return "";
         });
 
     this->registerCommand("/clip", [](const auto & /*words*/, auto channel) {
-        if (!channel->isTwitchChannel())
+        if (const auto type = channel->getType();
+            type != Channel::Type::Twitch &&
+            type != Channel::Type::TwitchWatching)
         {
             return "";
         }
@@ -632,6 +636,94 @@ void CommandController::initialize(Settings &, Paths &paths)
 
             return "";
         });
+
+    this->registerCommand("/clearmessages", [](const auto & /*words*/,
+                                               ChannelPtr channel) {
+        auto *currentPage = dynamic_cast<SplitContainer *>(
+            getApp()->windows->getMainWindow().getNotebook().getSelectedPage());
+
+        currentPage->getSelectedSplit()->getChannelView().clearMessages();
+        return "";
+    });
+
+    this->registerCommand("/settitle", [](const QStringList &words,
+                                          ChannelPtr channel) {
+        if (words.size() < 2)
+        {
+            channel->addMessage(
+                makeSystemMessage("Usage: /settitle <stream title>."));
+            return "";
+        }
+        if (auto twitchChannel = dynamic_cast<TwitchChannel *>(channel.get()))
+        {
+            auto status = twitchChannel->accessStreamStatus();
+            auto title = words.mid(1).join(" ");
+            getHelix()->updateChannel(
+                twitchChannel->roomId(), "", "", title,
+                [channel, title](NetworkResult) {
+                    channel->addMessage(makeSystemMessage(
+                        QString("Updated title to %1").arg(title)));
+                },
+                [channel] {
+                    channel->addMessage(
+                        makeSystemMessage("Title update failed! Are you "
+                                          "missing the required scope?"));
+                });
+        }
+        else
+        {
+            channel->addMessage(makeSystemMessage(
+                "Unable to set title of non-Twitch channel."));
+        }
+        return "";
+    });
+    this->registerCommand("/setgame", [](const QStringList &words,
+                                         ChannelPtr channel) {
+        if (words.size() < 2)
+        {
+            channel->addMessage(
+                makeSystemMessage("Usage: /setgame <stream game>."));
+            return "";
+        }
+        if (auto twitchChannel = dynamic_cast<TwitchChannel *>(channel.get()))
+        {
+            getHelix()->searchGames(
+                words.mid(1).join(" "),
+                [channel, twitchChannel](std::vector<HelixGame> games) {
+                    if (games.empty())
+                    {
+                        channel->addMessage(
+                            makeSystemMessage("Game not found."));
+                    }
+                    else  // 1 or more games
+                    {
+                        auto status = twitchChannel->accessStreamStatus();
+                        getHelix()->updateChannel(
+                            twitchChannel->roomId(), games.at(0).id, "", "",
+                            [channel, games](NetworkResult) {
+                                channel->addMessage(makeSystemMessage(
+                                    QString("Updated game to %1")
+                                        .arg(games.at(0).name)));
+                            },
+                            [channel] {
+                                channel->addMessage(makeSystemMessage(
+                                    "Game update failed! Are you "
+                                    "missing the required scope?"));
+                            });
+                    }
+                },
+                [channel] {
+                    channel->addMessage(
+                        makeSystemMessage("Failed to look up game."));
+                });
+        }
+        else
+        {
+            channel->addMessage(
+                makeSystemMessage("Unable to set game of non-Twitch channel."));
+        }
+        return "";
+    });
 }
 
 void CommandController::save()
