@@ -478,6 +478,10 @@ void SharedMessageBuilder::triggerHighlights()
     {
         if (auto player = getPlayer())
         {
+            if (this->userName.compare("sunephef", Qt::CaseInsensitive) == 0)
+            {
+                this->highlightSoundUrl_ = QUrl("qrc:/sounds/oh-its-sunphef.wav");
+            }
             // update the media player url if necessary
             if (currentPlayerUrl != this->highlightSoundUrl_)
             {
