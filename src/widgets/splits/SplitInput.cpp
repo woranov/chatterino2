@@ -403,11 +403,6 @@ void SplitInput::installKeyPressedEvent()
                 Split::Action::SelectSplitAbove);
 
             event->accept();
-
-            if (page != nullptr)
-            {
-                page->selectNextSplit(SplitContainer::Above);
-            }
         }
         else if (event->key() == Qt::Key_L &&
                  event->modifiers() == Qt::AltModifier)
